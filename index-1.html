@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>طلاب الرحلة</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#14243b;--mut:#5d6b80;--navy:#1f3a5f;--on:#fff;--line:#d5dce6;--soft:#e8edf3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#182233;--ink:#e8edf5;--mut:#9aa7ba;--navy:#6f95c9;--on:#0f1622;--line:#2a3850;--soft:#223049}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#182233;--ink:#e8edf5;--mut:#9aa7ba;--navy:#6f95c9;--on:#0f1622;--line:#2a3850;--soft:#223049}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 14px;color:var(--navy);text-align:center}
+.search{width:100%;padding:13px 14px;font-size:16px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-family:inherit}
+.search:focus{outline:2px solid var(--navy);border-color:var(--navy)}
+.results{margin:6px 0 0;background:var(--card);border:1px solid var(--line);border-radius:10px;max-height:240px;overflow-y:auto}
+.results button{display:flex;gap:10px;width:100%;text-align:right;padding:11px 14px;border:0;border-bottom:1px solid var(--soft);background:none;color:var(--ink);font-size:15px;font-family:inherit;cursor:pointer}
+.results button:last-child{border-bottom:0}
+.results .n{color:var(--mut);min-width:24px}
+.empty{padding:12px 14px;color:var(--mut);font-size:14px}
+.card{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 16px;text-align:center}
+.count{color:var(--mut);font-size:14px}
+.name{font-size:26px;font-weight:700;line-height:1.5;margin:10px 0 6px;color:var(--ink)}
+.place{display:inline-block;margin:4px 0 8px;padding:6px 14px;border-radius:20px;background:var(--soft);color:var(--navy);font-size:16px;font-weight:700}
+.place.none{color:var(--mut);font-weight:400}
+.phone{font-size:20px;letter-spacing:1px;color:var(--navy);direction:ltr;min-height:30px}
+.phone.none{font-size:15px;color:var(--mut);letter-spacing:0;direction:rtl}
+.seg{display:flex;margin-top:12px;border:1.5px solid var(--navy);border-radius:10px;overflow:hidden}
+.seg button{flex:1;padding:11px 6px;font-size:15px;font-family:inherit;font-weight:600;border:0;background:var(--card);color:var(--navy);cursor:pointer}
+.seg button.on{background:var(--navy);color:var(--on)}
+.nav{display:flex;gap:10px;margin-top:16px}
+.nav button{flex:1;padding:14px;font-size:16px;font-family:inherit;border:1.5px solid var(--navy);background:var(--card);color:var(--navy);border-radius:10px;cursor:pointer;font-weight:600}
+.nav button:disabled{opacity:.35;cursor:default}
+.act{display:flex;gap:10px;margin-top:12px}
+.act a{flex:1;display:block;text-align:center;padding:16px 8px;font-size:17px;font-weight:700;border-radius:10px;text-decoration:none;background:var(--navy);color:var(--on)}
+.act a.off{opacity:.35;pointer-events:none}
+.act a.alt{background:var(--card);color:var(--navy);border:1.5px solid var(--navy);font-size:15px;padding:12px 8px}
+.msg{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--soft);color:var(--ink);font-size:14px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>طلاب الرحلة</h1>
+  <input id="q" class="search" type="search" placeholder="ابحث باسم الطالب" autocomplete="off">
+  <div id="res" class="results" hidden></div>
+
+  <div class="seg" role="group" aria-label="الترتيب">
+    <button id="byPlace" class="on" aria-pressed="true">ترتيب بالمكان</button>
+    <button id="byList" aria-pressed="false">ترتيب بالقائمة</button>
+  </div>
+
+  <div class="card">
+    <div class="count" id="count"></div>
+    <div class="name" id="name"></div>
+    <div class="place" id="place"></div>
+    <div class="phone" id="phone"></div>
+    <div class="count" id="paper"></div>
+  </div>
+
+  <div class="nav">
+    <button id="next">التالي ←</button>
+    <button id="prev">→ السابق</button>
+  </div>
+
+  <div class="act">
+    <a id="call" href="#">📞 مكالمة</a>
+    <a id="wa" href="#" target="_blank" rel="noopener">💬 رسالة واتساب</a>
+  </div>
+  <div class="act"><a id="copy" href="#" class="alt">📋 نسخ الرقم</a></div>
+  <div id="msg" class="msg" hidden></div>
+</div>
+
+<script>
+// ===== بيانات الطلاب: [الاسم، رقم التليفون، رقم الوقفة] =====
+// اكتب الرقم كما هو (مثال: "01012345678") وسيُضاف كود مصر +20 تلقائيًا.
+const STUDENTS = [
+["سارة محمد دسوقي","01156679661",6],
+["ايتن عمرو محمود","01287258059",6],
+["علي سمير البدري","01152122325",5],
+["محمود طارق","01115545280",6],
+["ردينا عبد الحكيم احمد","01094489438",5],
+["جنى عبد الحكيم احمد","01094489438",5],
+["يوسف عاطف محمد","01150945890",3],
+["محمود حماده سعد","01110516168",6],
+["شروق مصطفى عاطف","01029815563",6],
+["احمد حسام ناصر","01283337201",1],
+["رحمه محمد ماهر","01125832884",6],
+["نورهان رمضان محمد","01106120236",6],
+["آدم عصام علي","01205503232",6],
+["أحمد أسامة فتحي","01278369865",6],
+["يوسف عبده شعبان","01025237906",6],
+["أحمد فتحي عبد الحفيظ","01129199238",6],
+["ياسمين وائل العربي","01213552247",6],
+["بسام حازم فوزي","01115622083",2],
+["معاذ علي السيد","01146008606",5],
+["أحمد ياسر كامل","01500130922",6],
+["سيف أحمد عباس","01121036651",6],
+["منة محمد السمان","01093483033",6],
+["إسلام ناصر عبد الحفيظ","01126498082",4],
+["آدم هاني هلال","01044223304",6],
+["أحمد محمود خليفة","01206075827",5],
+["عمر أحمد رفعت","01157007379",0],
+["ريتاج عصام يوسف","01148221205",6],
+["أحمد طارق السيد","01115545280",6],
+["رودينا محمد جمال","01018475188",6],
+["أروى أحمد أبو الحمد","01032740806",6],
+["إيهاب أيمن عبد العظيم","01094939500",1],
+["معاذ منتصر محمد","01049628271",6],
+["محمد منتصر محمد","01095602168",6],
+["إسماعيل إبراهيم فتحي","01015482379",6]
+];
+// الوقفات بالترتيب (رقم الوقفة = ترتيبها)
+const PLACES = {1:"المرشح",2:"الحواويش البحرية",3:"دريم",4:"الضرايب",5:"المفارج",6:"الأبراج"};
+const BASE = STUDENTS.map((s,i)=>({name:s[0],phone:s[1],stop:s[2],no:i+1}));
+const ORDERS = {
+  place: [...BASE].sort((a,b)=>((a.stop||99)-(b.stop||99))||(a.no-b.no)),
+  list: [...BASE]
+};
+let LIST = ORDERS.place;
+
+const $ = id => document.getElementById(id);
+let cur = 0;
+
+// رقم دولي: يشيل أي رموز والصفر الأول ويضيف 20
+function intl(p){
+  let d = String(p||"").replace(/[٠-٩]/g,c=>"٠١٢٣٤٥٦٧٨٩".indexOf(c)).replace(/\D/g,"");
+  if(!d) return "";
+  if(d.startsWith("0020")) d = d.slice(4);
+  else if(d.startsWith("20") && d.length >= 12) d = d.slice(2);
+  else if(d.startsWith("0")) d = d.slice(1);
+  return "20" + d;
+}
+// توحيد الحروف للبحث
+function norm(s){
+  return s.replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").trim().toLowerCase();
+}
+// مسافة التعديل بين كلمتين (للبحث بالتقريب)
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+// درجة القرب: أقل رقم = أقرب. null = مش مطابق
+function score(name,q){
+  const words=norm(name).split(/\s+/), toks=norm(q).split(/\s+/).filter(Boolean);
+  if(!toks.length) return null;
+  let total=0;
+  for(const t of toks){
+    let best=Infinity;
+    words.forEach((w,wi)=>{
+      let s=Infinity;
+      if(w.startsWith(t)) s = wi===0 ? 0 : 1;
+      else if(w.includes(t)) s = 3 + wi*0.1;
+      else if(t.length>=3 && lev(t,w.slice(0,t.length))<=1) s = 2 + wi*0.1;
+      else if(t.length>=3 && lev(t,w)<=(t.length>=5?2:1)) s = 4 + wi*0.1;
+      if(s<best) best=s;
+    });
+    if(best===Infinity) return null;
+    total+=best;
+  }
+  return total;
+}
+
+function show(i){
+  cur = Math.max(0, Math.min(LIST.length-1, i));
+  const s = LIST[cur], name = s.name;
+  const num = intl(s.phone);
+  $("count").textContent = (cur+1) + " / " + LIST.length;
+  $("name").textContent = name;
+  const pl = $("place");
+  if(s.stop){ pl.textContent = "الوقفة " + s.stop + " · " + PLACES[s.stop]; pl.className = "place"; }
+  else { pl.textContent = "المكان غير محدد"; pl.className = "place none"; }
+  $("paper").textContent = "رقم الورقة: " + s.no;
+  const ph = $("phone");
+  if(num){ ph.textContent = "+" + num; ph.className = "phone"; }
+  else { ph.textContent = "لم يُسجَّل رقم بعد"; ph.className = "phone none"; }
+  $("call").href = num ? "tel:+" + num : "#";
+  $("wa").href = num ? "https://wa.me/" + num : "#";
+  $("call").classList.toggle("off", !num);
+  $("wa").classList.toggle("off", !num);
+  $("copy").classList.toggle("off", !num);
+  $("prev").disabled = cur === 0;
+  $("next").disabled = cur === LIST.length-1;
+}
+
+function search(){
+  const t = norm($("q").value);
+  const box = $("res");
+  if(!t){ box.hidden = true; box.innerHTML = ""; return; }
+  const hits = [];
+  const sc = [];
+  LIST.forEach((s,i)=>{ const v = score(s.name, t); if(v !== null) sc.push([v,i]); });
+  sc.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  sc.forEach(x=>hits.push(x[1]));
+  box.hidden = false;
+  box.innerHTML = "";
+  if(!hits.length){ const d = document.createElement("div"); d.className = "empty"; d.textContent = "لا يوجد طالب بهذا الاسم"; box.appendChild(d); return; }
+  hits.forEach(i=>{
+    const b = document.createElement("button");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = LIST[i].stop || "—";
+    const m = document.createElement("span"); m.textContent = LIST[i].name + (LIST[i].stop ? " — " + PLACES[LIST[i].stop] : "");
+    b.append(n,m);
+    b.onclick = ()=>{ show(i); $("q").value = ""; search(); };
+    box.appendChild(b);
+  });
+}
+
+$("q").addEventListener("input", search);
+$("next").onclick = ()=>show(cur+1);
+
+// رد فعل واضح عند الضغط + نسخ الرقم كبديل
+function flash(t){
+  const m = $("msg"); m.textContent = t; m.hidden = false;
+  clearTimeout(flash.t); flash.t = setTimeout(()=>{ m.hidden = true; }, 6000);
+}
+function copyNum(num){
+  const txt = "+" + num;
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).catch(()=>{}); return true; } }catch(e){}
+  try{ const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); return true; }catch(e){}
+  return false;
+}
+$("call").addEventListener("click", e=>{
+  const num = intl(LIST[cur].phone);
+  if(!num){ e.preventDefault(); return; }
+  flash("📞 جاري فتح الاتصال بـ +" + num + " — لو ما فتحش دوس «نسخ الرقم» والصقه في الهاتف");
+});
+$("copy").onclick = e=>{
+  e.preventDefault();
+  const num = intl(LIST[cur].phone);
+  if(num) flash(copyNum(num) ? "✅ تم نسخ الرقم +" + num : "ما قدرتش أنسخ — الرقم: +" + num);
+};
+$("wa").addEventListener("click", e=>{
+  if(!intl(LIST[cur].phone)){ e.preventDefault(); return; }
+  flash("💬 جاري فتح الواتساب…");
+});
+$("prev").onclick = ()=>show(cur-1);
+function setOrder(k, reset){
+  const keepNo = LIST[cur].no;
+  LIST = ORDERS[k];
+  $("byPlace").classList.toggle("on", k==="place");
+  $("byList").classList.toggle("on", k==="list");
+  $("byPlace").setAttribute("aria-pressed", k==="place");
+  $("byList").setAttribute("aria-pressed", k==="list");
+  if(reset) $("q").value = "";
+  show(reset ? 0 : LIST.findIndex(s=>s.no===keepNo));
+  search();
+  try{ localStorage.setItem("tripOrder", k); }catch(e){}
+}
+$("byPlace").onclick = ()=>setOrder("place", true);
+$("byList").onclick = ()=>setOrder("list", true);
+show(0);
+try{ if(localStorage.getItem("tripOrder")==="list") setOrder("list"); }catch(e){}
+</script>
+</body>
+</html>
